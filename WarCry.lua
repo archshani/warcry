@@ -11,12 +11,22 @@ local playerGUID
 local defaults = {
     chance = 20,
     cooldown = 10,
-    phrases = {"For Glory!", "Victory or Death!"},
-    enabled = true
+    phrases = {}, -- Should be empty by default as requested
+    enabled = false -- Disabled by default as requested
 }
+addonTable.defaults = defaults
 
 -- Shared functions
+function addonTable.GetCharKey()
+    return UnitName("player") .. " - " .. GetRealmName()
+end
+
 function addonTable.GetProfileKey()
+    local charKey = addonTable.GetCharKey()
+    if WarCryDB and WarCryDB.charToProfile and WarCryDB.charToProfile[charKey] then
+        return WarCryDB.charToProfile[charKey]
+    end
+    -- Fallback to a default name based on race/class for the very first time
     local _, raceEn = UnitRace("player")
     local _, classEn = UnitClass("player")
     return (raceEn or "Unknown") .. "_" .. (classEn or "Unknown")
@@ -34,19 +44,36 @@ function addonTable.GetCurrentSettings()
             phrases = {},
             enabled = defaults.enabled
         }
-        for _, v in ipairs(defaults.phrases) do
-            table.insert(WarCryDB.profiles[key].phrases, v)
+    end
+
+    local settings = WarCryDB.profiles[key]
+    -- Migration logic for old string-based phrases
+    if settings.phrases then
+        for i, p in ipairs(settings.phrases) do
+            if type(p) == "string" then
+                settings.phrases[i] = { text = p, enabled = true }
+            end
         end
     end
-    return WarCryDB.profiles[key]
+
+    return settings
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
     local arg1 = ...
     if event == "ADDON_LOADED" and arg1 == addonName then
-        WarCryDB = WarCryDB or { profiles = {} }
+        WarCryDB = WarCryDB or { profiles = {}, charToProfile = {} }
         playerGUID = UnitGUID("player")
         
+        local charKey = addonTable.GetCharKey()
+        if not WarCryDB.charToProfile[charKey] then
+            local defaultProfileName = addonTable.GetProfileKey()
+            WarCryDB.charToProfile[charKey] = defaultProfileName
+        end
+
+        -- Initialize settings for current profile if it doesn't exist
+        addonTable.GetCurrentSettings()
+
         -- Small delay to ensure both files are loaded
         if addonTable.InitializeUI then
             addonTable.InitializeUI()
@@ -66,9 +93,19 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if currentTime - lastShoutTime >= settings.cooldown then
                 if math.random(1, 100) <= settings.chance then
                     if settings.phrases and #settings.phrases > 0 then
-                        local phrase = settings.phrases[math.random(1, #settings.phrases)]
-                        SendChatMessage(phrase, "YELL")
-                        lastShoutTime = currentTime
+                        -- Get only enabled phrases
+                        local activePhrases = {}
+                        for _, p in ipairs(settings.phrases) do
+                            if p.enabled then
+                                table.insert(activePhrases, p.text)
+                            end
+                        end
+
+                        if #activePhrases > 0 then
+                            local phrase = activePhrases[math.random(1, #activePhrases)]
+                            SendChatMessage(phrase, "YELL")
+                            lastShoutTime = currentTime
+                        end
                     end
                 end
             end
