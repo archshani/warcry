@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: WarCry
+## Notes: A configurable addon that shouts phrases when you use abilities.
+## Author: Jules
+## Version: 1.0
+## SavedVariables: WarCryDB
+
+WarCry.lua
