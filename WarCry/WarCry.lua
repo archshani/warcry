@@ -42,17 +42,17 @@ function addonTable.GetCurrentSettings()
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
-    if event == "ADDON_LOADED" then
-        local loadedAddon = ...
-        if loadedAddon == "WarCry" then
-            WarCryDB = WarCryDB or { profiles = {} }
-            playerGUID = UnitGUID("player")
+    local arg1 = ...
+    if event == "ADDON_LOADED" and arg1 == "WarCry" then
+        WarCryDB = WarCryDB or { profiles = {} }
+        playerGUID = UnitGUID("player")
 
-            if addonTable.InitializeUI then
-                addonTable.InitializeUI()
-            end
-            print("|cFF00FF00WarCry|r loaded. Type /warcry for options.")
+        -- Small delay to ensure both files are loaded
+        if addonTable.InitializeUI then
+            addonTable.InitializeUI()
         end
+        print("|cFF00FF00WarCry|r loaded. Type /warcry to toggle UI.")
+
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
         if not playerGUID then playerGUID = UnitGUID("player") end
 
@@ -60,7 +60,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         if sourceGUID == playerGUID and (subevent == "SPELL_CAST_SUCCESS" or subevent == "SPELL_CAST_START") then
             local settings = addonTable.GetCurrentSettings()
-            if not settings.enabled then return end
+            if not settings or not settings.enabled then return end
 
             local currentTime = GetTime()
             if currentTime - lastShoutTime >= settings.cooldown then
@@ -81,5 +81,7 @@ SLASH_WARCRY1 = "/warcry"
 SlashCmdList["WARCRY"] = function(msg)
     if addonTable.ToggleUI then
         addonTable.ToggleUI()
+    else
+        print("|cFFFF0000WarCry Error:|r UI not initialized.")
     end
 end
