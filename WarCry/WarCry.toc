@@ -6,3 +6,4 @@
 ## SavedVariables: WarCryDB
 
 WarCry.lua
+Options.lua
