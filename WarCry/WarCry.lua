@@ -43,8 +43,30 @@ end
 
 -- UI Initialization Function
 function addonTable.InitializeUI()
-    local panel = CreateFrame("Frame", "WarCryOptionsPanel", InterfaceOptionsFramePanelContainer)
+    -- Create the panel
+    local panel = CreateFrame("Frame", "WarCryOptionsPanel", UIParent)
     panel.name = "WarCry"
+
+    -- Add a background and border so it's visible even if not in InterfaceOptions
+    panel:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 8, right = 8, top = 8, bottom = 8 }
+    })
+    panel:SetSize(400, 500)
+    panel:SetPoint("CENTER")
+    panel:Hide()
+
+    -- Make it draggable
+    panel:SetMovable(true)
+    panel:EnableMouse(true)
+    panel:RegisterForDrag("LeftButton")
+    panel:SetScript("OnDragStart", panel.StartMoving)
+    panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
+
+    local closeBtn = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
+    closeBtn:SetPoint("TOPRIGHT", -8, -8)
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -109,6 +131,7 @@ function addonTable.InitializeUI()
     editBox:SetMaxLetters(1000)
     editBox:SetFontObject("ChatFontNormal")
     editBox:SetWidth(300)
+    editBox:SetAutoFocus(false)
     scrollFrame:SetScrollChild(editBox)
 
     editBox:SetScript("OnShow", function(self)
@@ -139,7 +162,25 @@ function addonTable.InitializeUI()
     bg:SetPoint("TOPLEFT", scrollFrame, -8, 8)
     bg:SetPoint("BOTTOMRIGHT", scrollFrame, 24, -8)
 
+    -- Test Button
+    local testBtn = CreateFrame("Button", "WarCryTestButton", panel, "UIPanelButtonTemplate")
+    testBtn:SetPoint("TOPLEFT", bg, "BOTTOMLEFT", 0, -16)
+    testBtn:SetText("Test Shout")
+    testBtn:SetSize(120, 22)
+    testBtn:SetScript("OnClick", function()
+        local settings = GetCurrentSettings()
+        if settings.phrases and #settings.phrases > 0 then
+            local phrase = settings.phrases[math.random(1, #settings.phrases)]
+            SendChatMessage(phrase, "YELL")
+        else
+            UIErrorsFrame:AddMessage("WarCry: No phrases configured!", 1, 0, 0)
+        end
+    end)
+
+    -- Also register it in InterfaceOptions for standard access
     InterfaceOptions_AddCategory(panel)
+
+    addonTable.panel = panel
 end
 
 frame:SetScript("OnEvent", function(self, event, ...)
@@ -149,9 +190,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             WarCryDB = WarCryDB or { profiles = {} }
             playerGUID = UnitGUID("player")
 
-            if addonTable.InitializeUI then
-                addonTable.InitializeUI()
-            end
+            addonTable.InitializeUI()
             print("|cFF00FF00WarCry|r loaded. Type /warcry for options.")
         end
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
@@ -180,6 +219,11 @@ end)
 -- Slash commands
 SLASH_WARCRY1 = "/warcry"
 SlashCmdList["WARCRY"] = function(msg)
-    InterfaceOptionsFrame_OpenToCategory("WarCry")
-    InterfaceOptionsFrame_OpenToCategory("WarCry")
+    if addonTable.panel then
+        if addonTable.panel:IsShown() then
+            addonTable.panel:Hide()
+        else
+            addonTable.panel:Show()
+        end
+    end
 end
