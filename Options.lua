@@ -64,6 +64,7 @@ local function CreateTab(id, text, parent)
         PanelTemplates_SetTab(parent, self:GetID())
         addonTable.ShowTab(self:GetID())
     end)
+    PanelTemplates_TabResize(tab, 0)
     return tab
 end
 
@@ -149,7 +150,7 @@ function addonTable.InitializeUI()
     local function OnProfileSelect(self)
         local charKey = addonTable.GetCharKey()
         WarCryDB.charToProfile[charKey] = self.value
-        UIDropDownMenu_SetSelectedValue(profileDropdown, self.value)
+        UIDropDownMenu_SetSelectedName(profileDropdown, self.value)
         UIDropDownMenu_SetText(profileDropdown, self.value)
         addonTable.RefreshUI()
     end
@@ -213,7 +214,7 @@ function addonTable.InitializeUI()
         local settings = addonTable.GetCurrentSettings()
         local profileName = addonTable.GetProfileKey()
 
-        UIDropDownMenu_SetSelectedValue(profileDropdown, profileName)
+        UIDropDownMenu_SetSelectedName(profileDropdown, profileName)
         UIDropDownMenu_SetText(profileDropdown, profileName)
 
         enableCheck:SetChecked(settings.enabled)
@@ -279,7 +280,7 @@ function addonTable.InitializeUI()
         text:SetPoint("LEFT", 30, 0)
         text:SetPoint("RIGHT", -30, 0) -- Leave space for delete button
         text:SetJustifyH("LEFT")
-        text:SetWordWrap(false)
+        text:SetHeight(20) -- Constrain height to simulate single line
         row.text = text
 
         local delBtn = CreateFrame("Button", nil, row, "UIPanelCloseButton")
